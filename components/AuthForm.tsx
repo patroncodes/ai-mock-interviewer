@@ -15,14 +15,7 @@ import {auth} from "@/firebase/client";
 import {signUp, signIn} from "@/lib/actions/auth.action";
 import {useState} from "react";
 import {Loader2} from "lucide-react";
-
-const authFormSchema = (type: FormType) => {
-    return z.object({
-        name: type === 'sign-up' ? z.string().min(3) : z.string().optional(),
-        email: z.string().email(),
-        password: z.string().min(6)
-    })
-}
+import {authFormSchema} from "@/lib/validation";
 
 const AuthForm = ({type}: {type: FormType}) =>  {
     const router = useRouter()

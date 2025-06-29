@@ -10,6 +10,7 @@ interface Feedback {
   strengths: string[];
   areasForImprovement: string[];
   finalAssessment: string;
+  version: number
   createdAt: string;
 }
 
@@ -18,7 +19,7 @@ interface Interview {
   role: string;
   level: string;
   questions: string[];
-  techstack: string[];
+  techStack: string[];
   createdAt: string;
   userId: string;
   type: string;
@@ -30,6 +31,7 @@ interface CreateFeedbackParams {
   userId: string;
   transcript: { role: string; content: string }[];
   feedbackId?: string;
+  version: number
 }
 
 interface User {
@@ -54,6 +56,7 @@ interface AgentProps {
   feedbackId?: string;
   type: "generate" | "interview";
   questions?: string[];
+  version?: number;
 }
 
 interface RouteParams {
@@ -64,6 +67,7 @@ interface RouteParams {
 interface GetFeedbackByInterviewIdParams {
   interviewId: string;
   userId: string;
+  version?: number;
 }
 
 interface GetLatestInterviewsParams {
@@ -97,3 +101,15 @@ interface InterviewFormProps {
 interface TechIconProps {
   techStack: string[];
 }
+
+interface RetakeButtonProps {
+  interviewId: string;
+  version: number
+}
+
+interface VersionControlProps {
+  count: number;
+  currentVersion: number;
+  interviewId: string;
+}
+

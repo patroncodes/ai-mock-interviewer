@@ -1,5 +1,4 @@
 import { CreateAssistantDTO } from "@vapi-ai/web/dist/api";
-import { z } from "zod";
 
 export const mappings = {
   "react.js": "react",
@@ -97,35 +96,41 @@ export const mappings = {
   "aws amplify": "amplify",
 };
 
-export const interviewer: CreateAssistantDTO = {
-  name: "Interviewer",
-  firstMessage:
-    "Hello! Thank you for taking the time to speak with me today. I'm excited to learn more about you and your experience.",
-  transcriber: {
-    provider: "deepgram",
-    model: "nova-2",
-    language: "en",
-  },
-  voice: {
-    provider: "11labs",
-    voiceId: "sarah",
-    stability: 0.4,
-    similarityBoost: 0.8,
-    speed: 0.9,
-    style: 0.5,
-    useSpeakerBoost: true,
-  },
-  model: {
-    provider: "openai",
-    model: "gpt-4",
-    messages: [
-      {
-        role: "system",
-        content: `You are a professional job interviewer conducting a real-time voice interview with a candidate. Your goal is to assess their qualifications, motivation, and fit for the role.
+export const interviewer = (version: number): CreateAssistantDTO => (
+    {
+      name: "Interviewer",
+      firstMessage:
+          "Hello! Thank you for taking the time to speak with me today. I'm excited to learn more about you and your experience.",
+      transcriber: {
+        provider: "deepgram",
+        model: "nova-2",
+        language: "en",
+      },
+      voice: {
+        provider: "11labs",
+        voiceId: "sarah",
+        stability: 0.4,
+        similarityBoost: 0.8,
+        speed: 0.9,
+        style: 0.5,
+        useSpeakerBoost: true,
+      },
+      model: {
+        provider: "openai",
+        model: "gpt-4",
+        messages: [
+          {
+            role: "system",
+            content: `You are a professional job interviewer conducting a real-time voice interview with a candidate. Your goal is to assess their qualifications, motivation, and fit for the role.
 
 Interview Guidelines:
 Follow the structured question flow:
 {{questions}}
+
+${version > 1
+    ? `Welcome the candidate back. Let them know this is their ${version}th attempt, and ask if they're now fully ready to ace the interview. Inform them that you'll be stricter in your analysis this time and expect significant improvement.`
+    : `Welcome the candidate to the interview and briefly explain that you'll be evaluating their performance across several key categories.`
+}
 
 Engage naturally & react appropriately:
 Listen actively to responses and acknowledge them before moving forward.
@@ -150,44 +155,11 @@ End the conversation on a polite and positive note.
 - Be sure to be professional and polite.
 - Keep all your responses short and simple. Use official language, but be kind and welcoming.
 - This is a voice conversation, so keep your responses short, like in a real conversation. Don't ramble for too long.`,
+          },
+        ],
       },
-    ],
-  },
-};
-
-export const feedbackSchema = z.object({
-  totalScore: z.number(),
-  categoryScores: z.tuple([
-    z.object({
-      name: z.literal("Communication Skills"),
-      score: z.number(),
-      comment: z.string(),
-    }),
-    z.object({
-      name: z.literal("Technical Knowledge"),
-      score: z.number(),
-      comment: z.string(),
-    }),
-    z.object({
-      name: z.literal("Problem Solving"),
-      score: z.number(),
-      comment: z.string(),
-    }),
-    z.object({
-      name: z.literal("Cultural Fit"),
-      score: z.number(),
-      comment: z.string(),
-    }),
-    z.object({
-      name: z.literal("Confidence and Clarity"),
-      score: z.number(),
-      comment: z.string(),
-    }),
-  ]),
-  strengths: z.array(z.string()),
-  areasForImprovement: z.array(z.string()),
-  finalAssessment: z.string(),
-});
+    }
+);
 
 export const interviewCovers = [
   "/adobe.png",
@@ -204,27 +176,36 @@ export const interviewCovers = [
   "/yahoo.png",
 ];
 
-export const dummyInterviews: Interview[] = [
-  {
-    id: "1",
-    userId: "user1",
-    role: "Frontend Developer",
-    type: "Technical",
-    techstack: ["React", "TypeScript", "Next.js", "Tailwind CSS"],
-    level: "Junior",
-    questions: ["What is React?"],
-    finalized: false,
-    createdAt: "2024-03-15T10:00:00Z",
-  },
-  {
-    id: "2",
-    userId: "user1",
-    role: "Full Stack Developer",
-    type: "Mixed",
-    techstack: ["Node.js", "Express", "MongoDB", "React"],
-    level: "Senior",
-    questions: ["What is Node.js?"],
-    finalized: false,
-    createdAt: "2024-03-14T15:30:00Z",
-  },
-];
+export const feedbackPrompt = ({previousFeedback, version, transcript} : {previousFeedback?: string; version: number; transcript: string}) => {
+  return `
+      You are an AI interviewer analyzing a mock interview. Your task is to evaluate the candidate based on structured categories. Be thorough and critical in your assessment.
+
+       This is attempt number ${version} by the candidate. Because this is version ${version}, your expectations should be ${version === 1 ? "standard" : version === 2 ? "higher" : "significantly higher"}. Be ${version === 1 ? "firm" : "strict"} in your evaluation — expect more clarity, depth, and confidence in responses as the attempts increase. If the candidate still makes the same mistakes, deduct more points and highlight those areas clearly.
+
+      That is: 
+      - ${version >= 3 ? "Be twice as strict." : ""}
+      - Mention repeated mistakes clearly
+      - Expect more nuanced response
+
+      ${previousFeedback && `
+          Here is the candidate's previous feedback from version ${version - 1}: ${previousFeedback}
+          
+         Review the new transcript, and:
+          - Look for signs of improvement or repeated weaknesses.
+          - Score accordingly.
+          - Do not repeat identical feedback unless the mistake was truly repeated
+      `}
+
+      Transcript:
+      ${transcript}
+      
+      Do not be lenient. The goal is to push the candidate toward real-world readiness by showing them exactly where they need to grow.
+
+      Please score the candidate from 0 to 100 in the following areas. Do not add categories other than the ones provided:
+      - Communication Skills: Clarity, articulation, structured responses.
+      - Technical Knowledge: Understanding of key concepts for the role.
+      - Problem-Solving: Ability to analyze problems and propose solutions.
+      - Cultural & Role Fit: Alignment with company values and job role.
+      - Confidence & Clarity: Confidence in responses, engagement, and clarity.
+        `
+}
